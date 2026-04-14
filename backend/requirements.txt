@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+playwright
+anthropic
+python-dotenv
+websockets
+pillow

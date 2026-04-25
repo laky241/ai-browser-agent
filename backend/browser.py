@@ -11,7 +11,7 @@ class BrowserController:
     async def start(self):
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.chromium.launch(
-            headless=False,
+            headless=True,
             args=[
                 "--window-size=1280,720",
                 "--disable-blink-features=AutomationControlled",
@@ -49,6 +49,13 @@ class BrowserController:
 
     async def get_url(self):
         return self.page.url
+
+    async def get_page_text(self):
+        try:
+            text = await self.page.evaluate("() => document.body.innerText")
+            return text[:3000]
+        except:
+            return ""
 
     async def execute_action(self, action: dict):
         action_type = action.get("action")

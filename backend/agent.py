@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import time
+import urllib.parse
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -14,7 +15,7 @@ client = OpenAI(
 
 SYSTEM_PROMPT = """You are a web browsing agent. You control a real browser to complete tasks.
 
-You will receive a screenshot of the current browser state, the current URL, and the actual text content of the page.
+You will receive a screenshot and the actual page text. Use BOTH to decide the next action.
 
 You must ALWAYS respond with ONLY a valid JSON object — no explanation, no markdown, no backticks.
 
@@ -25,17 +26,14 @@ Available actions:
 - {"action": "press", "key": "Enter"}
 - {"action": "scroll", "direction": "down"}
 - {"action": "wait"}
-- {"action": "done", "result": "Final answer or summary of what was accomplished"}
+- {"action": "done", "result": "Final answer with actual data from the page"}
 
 Rules:
-1. Use the PAGE TEXT to read actual data — prices, headlines, scores, names
-2. Use the screenshot to understand layout and where to click
-3. If the page text already contains the answer to the task, use "done" immediately
-4. Use "navigate" to go to a URL directly
-5. Use "done" when the task is fully complete with a clear, detailed result
-6. Never repeat the same action more than 3 times in a row
-7. If a page is loading, use "wait"
-8. Always include the actual data in your "done" result, not just "task completed"
+- Read PAGE TEXT carefully — if it contains the answer, use "done" immediately with real data
+- Never click at (0,0) — if lost, navigate to a new URL
+- Never use "wait" more than once in a row
+- Always include actual data in your final result, not just "task completed"
+- If you see search results in page text, extract the answer and use "done"
 """
 
 class BrowsingAgent:
@@ -115,7 +113,22 @@ Respond with ONLY a JSON object, nothing else."""
             current_url = await browser.get_url()
             page_text = await browser.get_page_text()
 
-            action = await self.decide_action(task, screenshot, step, page_text)
+            # step 1 always navigates directly to bing search
+            if step == 1:
+                search_query = urllib.parse.quote_plus(task)
+                action = {"action": "navigate", "url": f"https://www.bing.com/search?q={search_query}"}
+            else:
+                # detect if agent is stuck clicking same spot
+                if len(self.history) >= 3:
+                    last_3 = self.history[-3:]
+                    if len(set(last_3)) == 1 and "click" in last_3[0]:
+                        print("Loop detected — forcing scroll")
+                        action = {"action": "scroll", "direction": "down"}
+                        self.history.append(str(action))
+                    else:
+                        action = await self.decide_action(task, screenshot, step, page_text)
+                else:
+                    action = await self.decide_action(task, screenshot, step, page_text)
 
             step_data = {
                 "step": step,

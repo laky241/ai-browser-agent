@@ -17,6 +17,7 @@ class BrowserController:
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
+                "--disable-gpu",
             ]
         )
         context = await self.browser.new_context(
@@ -44,7 +45,17 @@ class BrowserController:
         print("Browser stopped")
 
     async def screenshot_base64(self):
-        screenshot = await self.page.screenshot(type="jpeg", quality=60)
+        try:
+            await self.page.wait_for_load_state("domcontentloaded", timeout=3000)
+        except:
+            pass
+        await asyncio.sleep(0.5)
+        screenshot = await self.page.screenshot(
+            type="jpeg",
+            quality=85,
+            full_page=False,
+            clip={"x": 0, "y": 0, "width": 1280, "height": 720}
+        )
         return base64.b64encode(screenshot).decode("utf-8")
 
     async def get_url(self):
@@ -65,8 +76,8 @@ class BrowserController:
             url = action.get("url", "")
             if not url.startswith("http"):
                 url = "https://" + url
-            await self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            await asyncio.sleep(2)
+            await self.page.goto(url, wait_until="networkidle", timeout=30000)
+            await asyncio.sleep(3)
             if "google.com" in url:
                 try:
                     await self.page.click('textarea[name="q"]', timeout=3000)

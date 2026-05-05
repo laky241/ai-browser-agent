@@ -1,6 +1,23 @@
-venv/
-.env
+# Python
 __pycache__/
 *.pyc
-.playwright/
-AppData/
+.venv/
+.env
+
+# DB
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Playwright
+playwright/.cache/

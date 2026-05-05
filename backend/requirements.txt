@@ -7,3 +7,4 @@ pillow
 httpx
 python-jose[cryptography]
 slowapi
+openai

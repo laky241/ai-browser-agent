@@ -4,3 +4,6 @@ playwright
 python-dotenv
 websockets
 pillow
+httpx
+python-jose[cryptography]
+slowapi
